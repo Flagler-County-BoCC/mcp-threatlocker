@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+token.txt
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+
+# macOS metadata
+.DS_Store
+
+# Project-specific artefacts (not secrets, but large/generated)
+threatlocker-openapi.json
