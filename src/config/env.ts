@@ -4,7 +4,7 @@ import { z } from 'zod';
 try {
   const { createRequire } = await import('module');
   const require = createRequire(import.meta.url);
-  (require('dotenv') as { config: () => void }).config();
+  (require('dotenv') as { config: (opts: { quiet: boolean }) => void }).config({ quiet: true });
 } catch {}
 
 const envSchema = z.object({
