@@ -20,6 +20,36 @@ const SERVER_KEY = 'mcp-threatlocker';
 const TEMPLATES_DIR = path.join(ROOT, 'templates', '.claude', 'commands');
 const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 
+function readDotEnv(): Record<string, string> {
+  const envPath = path.join(ROOT, '.env');
+  if (!fs.existsSync(envPath)) return {};
+  const vars: Record<string, string> = {};
+  for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    vars[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1).trim();
+  }
+  return vars;
+}
+
+function buildEnv(): Record<string, string> {
+  const dot = readDotEnv();
+  const env: Record<string, string> = {
+    NODE_ENV: 'production',
+    LOG_LEVEL: dot['LOG_LEVEL'] ?? 'info',
+    THREATLOCKER_INSTANCE: dot['THREATLOCKER_INSTANCE'] ?? 'h',
+  };
+  const key = dot['THREATLOCKER_API_KEY'] ?? process.env['THREATLOCKER_API_KEY'] ?? '';
+  if (key) env['THREATLOCKER_API_KEY'] = key;
+  const baseUrl = dot['THREATLOCKER_BASE_URL'] ?? '';
+  if (baseUrl) env['THREATLOCKER_BASE_URL'] = baseUrl;
+  const allowlist = dot['MCP_WRITE_ALLOWLIST'] ?? '';
+  if (allowlist) env['MCP_WRITE_ALLOWLIST'] = allowlist;
+  return env;
+}
+
 function getDesktopConfigPath(): string {
   switch (process.platform) {
     case 'darwin':
@@ -77,7 +107,7 @@ function registerDesktop(configPath: string): void {
   const cfg = readJson(configPath);
   const servers = (cfg['mcpServers'] as Record<string, unknown> | undefined) ?? {};
   const isUpdate = SERVER_KEY in servers;
-  servers[SERVER_KEY] = { command: 'node', args: [BINARY] };
+  servers[SERVER_KEY] = { command: 'node', args: [BINARY], env: buildEnv() };
   cfg['mcpServers'] = servers;
   writeJson(configPath, cfg);
   console.log(`\n  ${isUpdate ? 'Updated' : 'Registered'} in Claude Desktop`);
@@ -88,7 +118,7 @@ function registerClaudeCode(configPath: string): void {
   const cfg = readJson(configPath);
   const servers = (cfg['mcpServers'] as Record<string, unknown> | undefined) ?? {};
   const isUpdate = SERVER_KEY in servers;
-  servers[SERVER_KEY] = { type: 'stdio', command: 'node', args: [BINARY] };
+  servers[SERVER_KEY] = { type: 'stdio', command: 'node', args: [BINARY], env: buildEnv() };
   cfg['mcpServers'] = servers;
   writeJson(configPath, cfg);
   console.log(`\n  ${isUpdate ? 'Updated' : 'Registered'} in Claude Code`);
